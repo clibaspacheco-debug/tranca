@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casa de Repouso 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #064e3b; min-height: 100vh; padding: 16px; padding-bottom: 80px; }
+    .container { max-width: 400px; margin: 0 auto; }
+    h1 { color: white; text-align: center; font-size: 1.5rem; margin-bottom: 4px; }
+    h1 span { color: #facc15; }
+    .subtitle { color: #6ee7b7; text-align: center; font-size: 0.875rem; margin-bottom: 20px; }
+    .card { background: #065f46; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .card h2 { color: white; font-size: 1rem; margin-bottom: 12px; }
+    .mensagem { background: #facc15; color: black; padding: 8px 16px; border-radius: 8px; text-align: center; margin-bottom: 16px; font-weight: 500; }
+    
+    /* Placar */
+    .jogador-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 8px; margin-bottom: 8px; background: rgba(4, 120, 87, 0.5); }
+    .jogador-row.primeiro { background: rgba(202, 138, 4, 0.3); }
+    .jogador-info { display: flex; align-items: center; gap: 12px; }
+    .medalha { font-size: 1.25rem; width: 32px; }
+    .jogador-nome { color: white; font-weight: 500; }
+    .jogador-pontos { font-weight: bold; font-size: 1.125rem; }
+    .jogador-pontos.positivo { color: #4ade80; }
+    .jogador-pontos.negativo { color: #f87171; }
+    
+    /* Registrar */
+    .secao-titulo { font-weight: 500; margin-bottom: 8px; font-size: 0.875rem; }
+    .secao-titulo.vencedor { color: #4ade80; }
+    .secao-titulo.perdedor { color: #f87171; }
+    .botoes-jogadores { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .btn-jogador { padding: 8px 12px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; transition: all 0.2s; background: #047857; color: white; }
+    .btn-jogador:hover { background: #059669; }
+    .btn-jogador.selecionado-vencedor { background: #22c55e; }
+    .btn-jogador.selecionado-perdedor { background: #ef4444; }
+    .btn-jogador:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; }
+    .btn-registrar { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #facc15; color: black; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    .btn-registrar:hover { background: #fde047; }
+    .btn-registrar:disabled { background: #4b5563; cursor: not-allowed; }
+    
+    /* Jogadores */
+    .input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .input-row input { flex: 1; padding: 8px 16px; border-radius: 8px; border: none; background: #047857; color: white; font-size: 1rem; }
+    .input-row input::placeholder { color: #6ee7b7; }
+    .input-row input:focus { outline: 2px solid #facc15; }
+    .btn-add { padding: 8px 16px; border-radius: 8px; border: none; background: #facc15; color: black; font-weight: bold; cursor: pointer; }
+    .jogador-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 8px; margin-bottom: 8px; background: rgba(4, 120, 87, 0.5); }
+    .jogador-item-nome { color: white; }
+    .jogador-item-acoes { display: flex; align-items: center; gap: 8px; }
+    .btn-pontos { padding: 4px 8px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-weight: 500; }
+    .btn-pontos.positivo { color: #4ade80; }
+    .btn-pontos.negativo { color: #f87171; }
+    .btn-pontos:hover { background: #059669; }
+    .input-pontos { width: 60px; padding: 4px 8px; border-radius: 4px; border: none; background: #059669; color: white; text-align: center; font-size: 1rem; }
+    .btn-delete { background: none; border: none; color: #f87171; cursor: pointer; padding: 4px; }
+    .btn-delete:hover { color: #fca5a5; }
+    
+    /* Histórico */
+    .historico-item { padding: 12px; border-radius: 8px; margin-bottom: 12px; background: rgba(4, 120, 87, 0.5); }
+    .historico-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .historico-data { color: #6ee7b7; font-size: 0.75rem; margin-bottom: 8px; }
+    .historico-vencedor { color: #4ade80; font-size: 0.875rem; }
+    .historico-perdedor { color: #f87171; font-size: 0.875rem; }
+    .historico-edicao { color: #facc15; font-size: 0.875rem; }
+    .historico-edicao-detalhe { color: #6ee7b7; font-size: 0.75rem; }
+    .vazio { color: #6ee7b7; text-align: center; padding: 16px; }
+    
+    /* Bottom Nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #022c22; border-top: 1px solid #065f46; display: flex; }
+    .nav-btn { flex: 1; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: #6ee7b7; cursor: pointer; font-size: 0.75rem; }
+    .nav-btn.ativo { color: #facc15; }
+    .nav-btn svg { width: 20px; height: 20px; }
+    
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+    .modal { background: #065f46; border-radius: 12px; padding: 20px; max-width: 320px; width: 100%; }
+    .modal p { color: white; text-align: center; margin-bottom: 16px; white-space: pre-line; }
+    .modal-btns { display: flex; gap: 12px; }
+    .modal-btns button { flex: 1; padding: 8px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; }
+    .btn-cancelar { background: #047857; color: white; }
+    .btn-confirmar { background: #ef4444; color: white; }
+    
+    .hidden { display: none; }
+    .loading { color: white; text-align: center; padding: 40px; font-size: 1.25rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span>🏆</span> Casa de Repouso 2026</h1>
+    <p class="subtitle" id="subtitle">Carregando...</p>
+    
+    <div id="mensagem" class="mensagem hidden"></div>
+    
+    <!-- Placar -->
+    <div id="aba-placar" class="card">
+      <h2>🏅 Classificação Geral</h2>
+      <div id="lista-placar"></div>
+    </div>
+    
+    <!-- Registrar -->
+    <div id="aba-registrar" class="card hidden">
+      <h2>Registrar Partida</h2>
+      <p class="secao-titulo vencedor">🏆 Dupla Vencedora (<span id="count-vencedores">0</span>/2)</p>
+      <div id="btns-vencedores" class="botoes-jogadores"></div>
+      <p class="secao-titulo perdedor">❌ Dupla Perdedora (<span id="count-perdedores">0</span>/2)</p>
+      <div id="btns-perdedores" class="botoes-jogadores"></div>
+      <button id="btn-registrar" class="btn-registrar" disabled>Registrar Partida</button>
+    </div>
+    
+    <!-- Jogadores -->
+    <div id="aba-jogadores" class="card hidden">
+      <h2>Gerenciar Jogadores</h2>
+      <div class="input-row">
+        <input type="text" id="input-novo-jogador" placeholder="Nome do jogador">
+        <button id="btn-adicionar" class="btn-add">+</button>
+      </div>
+      <div id="lista-jogadores"></div>
+    </div>
+    
+    <!-- Histórico -->
+    <div id="aba-historico" class="card hidden">
+      <h2>Histórico</h2>
+      <div id="lista-historico"></div>
+    </div>
+  </div>
+  
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn ativo" data-aba="placar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      Placar
+    </button>
+    <button class="nav-btn" data-aba="registrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Registrar
+    </button>
+    <button class="nav-btn" data-aba="jogadores">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Jogadores
+    </button>
+    <button class="nav-btn" data-aba="historico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+      Histórico
+    </button>
+  </div>
+  
+  <!-- Modal -->
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal">
+      <p id="modal-texto"></p>
+      <div class="modal-btns">
+        <button class="btn-cancelar" id="modal-cancelar">Cancelar</button>
+        <button class="btn-confirmar" id="modal-confirmar">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== CONFIGURAÇÃO ==========
+    // SUBSTITUA pelos seus dados do JSONBin:
+    const JSONBIN_BIN_ID = '6967f7f643b1c97be930db4c';
+    const JSONBIN_API_KEY = '$2a$10$74hqjPp./ngq4cI2bwPP3ODkpMQ/fup2Zf1YOKeOz6E/am1OGCVQ.';
+    // ==================================
+
+    let jogadores = [];
+    let historico = [];
+    let vencedores = [];
+    let perdedores = [];
+    let abaAtual = 'placar';
+    let modalCallback = null;
+    let editandoJogador = null;
+
+    // Elementos
+    const $ = id => document.getElementById(id);
+
+    // Carregar dados
+    async function carregarDados() {
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+          headers: { 'X-Access-Key': JSONBIN_API_KEY }
+        });
+        const data = await res.json();
+        jogadores = data.record.jogadores || [];
+        historico = data.record.historico || [];
+      } catch (e) {
+        console.log('Erro ao carregar, iniciando vazio:', e);
+      }
+      renderizar();
+    }
+
+    // Salvar dados
+    async function salvarDados() {
+      try {
+        await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Access-Key': JSONBIN_API_KEY
+          },
+          body: JSON.stringify({ jogadores, historico })
+        });
+      } catch (e) {
+        console.error('Erro ao salvar:', e);
+      }
+    }
+
+    // Mostrar mensagem
+    function mostrarMensagem(msg) {
+      const el = $('mensagem');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 2000);
+    }
+
+    // Modal
+    function mostrarModal(texto, callback) {
+      $('modal-texto').textContent = texto;
+      $('modal').classList.remove('hidden');
+      modalCallback = callback;
+    }
+
+    $('modal-cancelar').onclick = () => {
+      $('modal').classList.add('hidden');
+      modalCallback = null;
+    };
+
+    $('modal-confirmar').onclick = () => {
+      $('modal').classList.add('hidden');
+      if (modalCallback) modalCallback();
+      modalCallback = null;
+    };
+
+    // Navegação
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        abaAtual = btn.dataset.aba;
+        renderizar();
+      };
+    });
+
+    // Renderizar
+    function renderizar() {
+      // Abas
+      ['placar', 'registrar', 'jogadores', 'historico'].forEach(aba => {
+        $(`aba-${aba}`).classList.toggle('hidden', abaAtual !== aba);
+      });
+
+      $('subtitle').textContent = `${jogadores.length} jogadores • ${historico.filter(h => !h.tipo).length} partidas`;
+
+      if (abaAtual === 'placar') renderizarPlacar();
+      if (abaAtual === 'registrar') renderizarRegistrar();
+      if (abaAtual === 'jogadores') renderizarJogadores();
+      if (abaAtual === 'historico') renderizarHistorico();
+    }
+
+    function getMedalha(i) {
+      if (i === 0) return '🥇';
+      if (i === 1) return '🥈';
+      if (i === 2) return '🥉';
+      return `${i + 1}º`;
+    }
+
+    function renderizarPlacar() {
+      const ordenados = [...jogadores].sort((a, b) => b.pontos - a.pontos);
+      const el = $('lista-placar');
+      
+      if (ordenados.length === 0) {
+        el.innerHTML = '<p class="vazio">Adicione jogadores na aba Jogadores</p>';
+        return;
+      }
+
+      el.innerHTML = ordenados.map((j, i) => `
+        <div class="jogador-row ${i === 0 ? 'primeiro' : ''}">
+          <div class="jogador-info">
+            <span class="medalha">${getMedalha(i)}</span>
+            <span class="jogador-nome">${j.nome}</span>
+          </div>
+          <span class="jogador-pontos ${j.pontos >= 0 ? 'positivo' : 'negativo'}">
+            ${j.pontos > 0 ? '+' : ''}${j.pontos}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    function renderizarRegistrar() {
+      if (jogadores.length < 4) {
+        $('btns-vencedores').innerHTML = '<p class="vazio">Adicione pelo menos 4 jogadores</p>';
+        $('btns-perdedores').innerHTML = '';
+        $('btn-registrar').disabled = true;
+        return;
+      }
+
+      $('count-vencedores').textContent = vencedores.length;
+      $('count-perdedores').textContent = perdedores.length;
+
+      $('btns-vencedores').innerHTML = jogadores.map(j => `
+        <button class="btn-jogador ${vencedores.includes(j.nome) ? 'selecionado-vencedor' : ''}" 
+                data-nome="${j.nome}" data-tipo="vencedor"
+                ${perdedores.includes(j.nome) ? 'disabled' : ''}>
+          ${j.nome}
+        </button>
+      `).join('');
+
+      $('btns-perdedores').innerHTML = jogadores.map(j => `
+        <button class="btn-jogador ${perdedores.includes(j.nome) ? 'selecionado-perdedor' : ''}" 
+                data-nome="${j.nome}" data-tipo="perdedor"
+                ${vencedores.includes(j.nome) ? 'disabled' : ''}>
+          ${j.nome}
+        </button>
+      `).join('');
+
+      document.querySelectorAll('.btn-jogador').forEach(btn => {
+        btn.onclick = () => toggleSelecao(btn.dataset.nome, btn.dataset.tipo);
+      });
+
+      $('btn-registrar').disabled = vencedores.length !== 2 || perdedores.length !== 2;
+    }
+
+    function toggleSelecao(nome, tipo) {
+      if (tipo === 'vencedor') {
+        if (vencedores.includes(nome)) {
+          vencedores = vencedores.filter(n => n !== nome);
+        } else if (vencedores.length < 2) {
+          vencedores.push(nome);
+        }
+      } else {
+        if (perdedores.includes(nome)) {
+          perdedores = perdedores.filter(n => n !== nome);
+        } else if (perdedores.length < 2) {
+          perdedores.push(nome);
+        }
+      }
+      renderizarRegistrar();
+    }
+
+    $('btn-registrar').onclick = async () => {
+      jogadores = jogadores.map(j => {
+        if (vencedores.includes(j.nome)) return { ...j, pontos: j.pontos + 2 };
+        if (perdedores.includes(j.nome)) return { ...j, pontos: j.pontos - 1 };
+        return j;
+      });
+
+      historico.unshift({
+        id: Date.now(),
+        data: new Date().toLocaleDateString('pt-BR'),
+        vencedores: [...vencedores],
+        perdedores: [...perdedores]
+      });
+
+      vencedores = [];
+      perdedores = [];
+      await salvarDados();
+      mostrarMensagem('Partida registrada! ✓');
+      renderizar();
+    };
+
+    function renderizarJogadores() {
+      const el = $('lista-jogadores');
+      
+      el.innerHTML = jogadores.map(j => `
+        <div class="jogador-item">
+          <span class="jogador-item-nome">${j.nome}</span>
+          <div class="jogador-item-acoes">
+            ${editandoJogador === j.nome 
+              ? `<input type="number" class="input-pontos" value="${j.pontos}" data-nome="${j.nome}">`
+              : `<button class="btn-pontos ${j.pontos >= 0 ? 'positivo' : 'negativo'}" data-nome="${j.nome}" data-acao="editar">
+                  ${j.pontos > 0 ? '+' : ''}${j.pontos} pts
+                </button>`
+            }
+            <button class="btn-delete" data-nome="${j.nome}" data-acao="remover">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Event listeners
+      el.querySelectorAll('.btn-pontos').forEach(btn => {
+        btn.onclick = () => {
+          editandoJogador = btn.dataset.nome;
+          renderizarJogadores();
+          setTimeout(() => {
+            const input = el.querySelector(`input[data-nome="${btn.dataset.nome}"]`);
+            if (input) input.focus();
+          }, 0);
+        };
+      });
+
+      el.querySelectorAll('.input-pontos').forEach(input => {
+        input.onblur = () => salvarPontos(input.dataset.nome, input.value);
+        input.onkeypress = e => { if (e.key === 'Enter') salvarPontos(input.dataset.nome, input.value); };
+      });
+
+      el.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.onclick = () => removerJogador(btn.dataset.nome);
+      });
+    }
+
+    async function salvarPontos(nome, valor) {
+      const pontosNovos = parseInt(valor) || 0;
+      const jogador = jogadores.find(j => j.nome === nome);
+      const pontosAntigos = jogador ? jogador.pontos : 0;
+
+      if (pontosNovos !== pontosAntigos) {
+        jogadores = jogadores.map(j => j.nome === nome ? { ...j, pontos: pontosNovos } : j);
+        
+        historico.unshift({
+          id: Date.now(),
+          data: new Date().toLocaleDateString('pt-BR'),
+          tipo: 'edicao',
+          jogador: nome,
+          pontosAntigos,
+          pontosNovos
+        });
+
+        await salvarDados();
+        mostrarMensagem('Pontos atualizados!');
+      }
+
+      editandoJogador = null;
+      renderizar();
+    }
+
+    function removerJogador(nome) {
+      mostrarModal(`Remover ${nome}?`, async () => {
+        jogadores = jogadores.filter(j => j.nome !== nome);
+        await salvarDados();
+        mostrarMensagem('Jogador removido!');
+        renderizar();
+      });
+    }
+
+    $('btn-adicionar').onclick = adicionarJogador;
+    $('input-novo-jogador').onkeypress = e => { if (e.key === 'Enter') adicionarJogador(); };
+
+    async function adicionarJogador() {
+      const nome = $('input-novo-jogador').value.trim();
+      if (!nome) return;
+      if (jogadores.find(j => j.nome.toLowerCase() === nome.toLowerCase())) {
+        mostrarMensagem('Jogador já existe!');
+        return;
+      }
+      jogadores.push({ nome, pontos: 0 });
+      $('input-novo-jogador').value = '';
+      await salvarDados();
+      mostrarMensagem('Jogador adicionado!');
+      renderizar();
+    }
+
+    function renderizarHistorico() {
+      const el = $('lista-historico');
+
+      if (historico.length === 0) {
+        el.innerHTML = '<p class="vazio">Nenhuma partida registrada</p>';
+        return;
+      }
+
+      el.innerHTML = historico.map(h => `
+        <div class="historico-item">
+          <div class="historico-header">
+            <div>
+              <p class="historico-data">${h.data}</p>
+              ${h.tipo === 'edicao' 
+                ? `<p class="historico-edicao">✏️ Edição manual: <strong>${h.jogador}</strong></p>
+                   <p class="historico-edicao-detalhe">${h.pontosAntigos} → ${h.pontosNovos} pts</p>`
+                : `<p class="historico-vencedor">🏆 ${h.vencedores.join(' & ')} <span style="opacity:0.7">(+2)</span></p>
+                   <p class="historico-perdedor">❌ ${h.perdedores.join(' & ')} <span style="opacity:0.7">(-1)</span></p>`
+              }
+            </div>
+            <button class="btn-delete" data-id="${h.id}" data-tipo="${h.tipo || 'partida'}">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+
+      el.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.onclick = () => {
+          const id = parseInt(btn.dataset.id);
+          const item = historico.find(h => h.id === id);
+          
+          if (btn.dataset.tipo === 'edicao') {
+            mostrarModal(`Deletar edição de ${item.jogador}?\n(${item.pontosAntigos} → ${item.pontosNovos})`, async () => {
+              historico = historico.filter(h => h.id !== id);
+              await salvarDados();
+              mostrarMensagem('Registro removido!');
+              renderizar();
+            });
+          } else {
+            mostrarModal(`Deletar partida de ${item.data}?\n${item.vencedores.join(' & ')} vs ${item.perdedores.join(' & ')}`, async () => {
+              jogadores = jogadores.map(j => {
+                if (item.vencedores.includes(j.nome)) return { ...j, pontos: j.pontos - 2 };
+                if (item.perdedores.includes(j.nome)) return { ...j, pontos: j.pontos + 1 };
+                return j;
+              });
+              historico = historico.filter(h => h.id !== id);
+              await salvarDados();
+              mostrarMensagem('Partida deletada!');
+              renderizar();
+            });
+          }
+        };
+      });
+    }
+
+    // Iniciar
+    carregarDados();
+  </script>
+</body>
+</html>
