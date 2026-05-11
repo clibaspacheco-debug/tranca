@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#022c22"/>
+    </radialGradient>
+    <linearGradient id="trophy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde047"/>
+      <stop offset="1" stop-color="#ca8a04"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <g transform="translate(256 256)" fill="url(#trophy)">
+    <path d="M-90 -130 L90 -130 L90 -60 C90 0 50 50 0 50 C-50 50 -90 0 -90 -60 Z"/>
+    <rect x="-25" y="50" width="50" height="40"/>
+    <rect x="-75" y="90" width="150" height="22" rx="6"/>
+    <path d="M-90 -100 C-130 -100 -150 -80 -150 -50 C-150 -10 -120 10 -90 10 L-90 -20 C-110 -20 -125 -30 -125 -50 C-125 -70 -110 -80 -90 -80 Z"/>
+    <path d="M90 -100 C130 -100 150 -80 150 -50 C150 -10 120 10 90 10 L90 -20 C110 -20 125 -30 125 -50 C125 -70 110 -80 90 -80 Z"/>
+  </g>
+</svg>
