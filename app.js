@@ -7,6 +7,7 @@ const BIN_ID = '6967f7f643b1c97be930db4c';
 const API_KEY = '$2a$10$74hqjPp./ngq4cI2bwPP3ODkpMQ/fup2Zf1YOKeOz6E/am1OGCVQ.';
 const BASE = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 const CACHE_KEY = 'tranca-cache-v2';
+const LKG_KEY = 'tranca-lkg'; // last-known-good snapshot
 
 // ===== State =====
 let data = { schemaVersion: 2, jogadores: [], partidas: [], edicoes: [] };
@@ -98,14 +99,18 @@ async function carregarDados() {
     const res = await fetch(`${BASE}/latest`, { headers: { 'X-Access-Key': API_KEY } });
     const j = await res.json();
     const rec = j.record || {};
-    // Detecta schema antigo e migra
+    // Detecta schema antigo e migra EM MEMÓRIA. Não persiste — só grava quando o usuário faz uma ação.
     if (rec.schemaVersion === 2 && Array.isArray(rec.partidas)) {
-      data = { schemaVersion: 2, jogadores: rec.jogadores || [], partidas: rec.partidas || [], edicoes: rec.edicoes || [] };
+      data = {
+        schemaVersion: 2,
+        jogadores: (rec.jogadores || []).map(j => ({ nome: j.nome, ativo: j.ativo !== false, criadoEm: j.criadoEm || null })),
+        partidas: rec.partidas || [],
+        edicoes: rec.edicoes || [],
+      };
     } else {
-      // schema legado (jogadores com pontos + historico misto)
       data = S.migrar(rec.jogadores, rec.historico);
-      // salva back migrado
-      await salvarDados({ silent: true });
+      // NÃO chamamos salvarDados aqui — evita sobrescrever a bin com schema novo enquanto
+      // não houver ação explícita do usuário (registro de partida, novo jogador, etc.)
     }
     saveCache();
     render();
@@ -115,13 +120,51 @@ async function carregarDados() {
   }
 }
 
+// Monta payload em formato dual (legado + v2) pra manter compatibilidade
+// com o site antigo enquanto o GitHub Pages não atualiza.
+function montarPayload() {
+  const legadoJogadores = data.jogadores.map(j => {
+    const base = { nome: j.nome, pontos: S.calcPontos(j.nome, data.partidas, data.edicoes) };
+    if (j.ativo === false) base.ativo = false;
+    if (j.criadoEm) base.criadoEm = j.criadoEm;
+    return base;
+  });
+  const legadoHistorico = [
+    ...data.partidas.map(p => ({
+      id: p.id,
+      data: S.formatBR(p.data),
+      vencedores: p.vencedores,
+      perdedores: p.perdedores,
+    })),
+    ...data.edicoes.map(e => ({
+      id: e.id,
+      data: S.formatBR(e.data),
+      tipo: 'edicao',
+      jogador: e.jogador,
+      pontosAntigos: e.de,
+      pontosNovos: e.para,
+    })),
+  ].sort((a, b) => b.id - a.id);
+
+  return {
+    schemaVersion: 2,
+    jogadores: legadoJogadores,
+    historico: legadoHistorico,
+    partidas: data.partidas,
+    edicoes: data.edicoes,
+  };
+}
+
 async function salvarDados({ silent } = {}) {
   saveCache();
+  const payload = montarPayload();
+  // Backup last-known-good antes de subir
+  try { localStorage.setItem(LKG_KEY, JSON.stringify({ ts: Date.now(), payload })); } catch {}
   try {
     await fetch(BASE, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Access-Key': API_KEY },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!silent) toast('Salvo ✓');
   } catch (e) {
