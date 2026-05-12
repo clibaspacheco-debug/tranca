@@ -1,5 +1,5 @@
 // sw.js — service worker simples (cache-first pros assets, network-first pra dados)
-const VERSION = 'tranca-v1';
+const VERSION = 'tranca-v2-1';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const ASSETS = [
   './manifest.webmanifest',
   './icons/icon.svg',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js',
 ];
 
 self.addEventListener('install', (e) => {

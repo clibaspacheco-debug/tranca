@@ -49,6 +49,17 @@ export const filtrarPorTemporada = (items, ano) => {
   });
 };
 
+// Filtra items cuja `data` está nos últimos N dias (a partir de hoje, inclusivo)
+export const filtrarPorJanela = (items, dias, hoje = new Date()) => {
+  const cutoff = new Date(hoje);
+  cutoff.setDate(cutoff.getDate() - dias);
+  cutoff.setHours(0, 0, 0, 0);
+  return items.filter(it => {
+    const d = parseISO(it.data);
+    return d && d >= cutoff;
+  });
+};
+
 // Total de pontos do jogador, derivado de partidas + edições
 export const calcPontos = (nome, partidas, edicoes) => {
   let pts = 0;
@@ -326,6 +337,61 @@ export const distribuicaoDiaSemana = (partidas) => {
     if (d) dist[d.getDay()]++;
   }
   return dist;
+};
+
+// === Destaques de curto prazo (placar V2.1) ===
+
+// MVP da janela: jogador que somou mais pontos no período. null se ninguém jogou.
+export const mvpDaJanela = (jogadores, partidas, edicoes, dias) => {
+  const ps = filtrarPorJanela(partidas, dias);
+  const es = filtrarPorJanela(edicoes, dias);
+  const placar = jogadores
+    .filter(j => j.ativo !== false)
+    .map(j => ({
+      nome: j.nome,
+      pontos: calcPontos(j.nome, ps, es),
+      partidas: ps.filter(p => participou(p, j.nome)).length,
+    }))
+    .filter(x => x.partidas > 0)
+    .sort((a, b) => b.pontos - a.pontos || b.partidas - a.partidas);
+  return placar[0] || null;
+};
+
+// Mais ativo da janela: jogador com mais partidas no período. null se ninguém.
+export const maisAtivoDaJanela = (jogadores, partidas, dias) => {
+  const ps = filtrarPorJanela(partidas, dias);
+  const ranking = jogadores
+    .filter(j => j.ativo !== false)
+    .map(j => ({ nome: j.nome, total: ps.filter(p => participou(p, j.nome)).length }))
+    .filter(x => x.total > 0)
+    .sort((a, b) => b.total - a.total);
+  return ranking[0] || null;
+};
+
+// Maior streak ativo (V ou D) entre todos os jogadores. Mínimo 2 pra contar.
+// Retorna { nome, valor, tipo } ou null.
+export const streakMaiorAtivo = (jogadores, partidas, min = 2) => {
+  let melhor = null;
+  for (const j of jogadores.filter(j => j.ativo !== false)) {
+    const s = streak(j.nome, partidas);
+    if (s.atual >= min) {
+      // Prioriza vitórias se empate; usa ordem alfabética como desempate final
+      const score = s.atual + (s.tipo === 'V' ? 0.5 : 0);
+      const score0 = melhor ? melhor.atual + (melhor.tipo === 'V' ? 0.5 : 0) : -1;
+      if (score > score0 || (score === score0 && j.nome.localeCompare(melhor.nome) < 0)) {
+        melhor = { nome: j.nome, atual: s.atual, tipo: s.tipo };
+      }
+    }
+  }
+  return melhor;
+};
+
+// Última partida registrada (a mais recente por data + id).
+export const ultimaPartida = (partidas) => {
+  if (!partidas.length) return null;
+  return [...partidas].sort((a, b) =>
+    (parseISO(b.data) - parseISO(a.data)) || (b.id - a.id)
+  )[0];
 };
 
 // Curiosidades "sabia que..."

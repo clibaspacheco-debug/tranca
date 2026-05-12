@@ -8,6 +8,10 @@ const API_KEY = '$2a$10$74hqjPp./ngq4cI2bwPP3ODkpMQ/fup2Zf1YOKeOz6E/am1OGCVQ.';
 const BASE = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 const CACHE_KEY = 'tranca-cache-v2';
 const LKG_KEY = 'tranca-lkg'; // last-known-good snapshot
+// dev mode bloqueia gravação no JSONBin durante teste local (evita poluir dados reais)
+const DEV_MODE = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+// janela dos destaques de curto prazo (placar)
+const JANELA_DESTAQUES_DIAS = 45;
 
 // ===== State =====
 let data = { schemaVersion: 2, jogadores: [], partidas: [], edicoes: [] };
@@ -160,6 +164,11 @@ async function salvarDados({ silent } = {}) {
   const payload = montarPayload();
   // Backup last-known-good antes de subir
   try { localStorage.setItem(LKG_KEY, JSON.stringify({ ts: Date.now(), payload })); } catch {}
+  if (DEV_MODE) {
+    console.warn('[DEV] PUT bloqueado (host local). Estado em cache local apenas.');
+    if (!silent) toast('Dev: salvo só local');
+    return;
+  }
   try {
     await fetch(BASE, {
       method: 'PUT',
@@ -246,6 +255,9 @@ function renderPlacar(main) {
     return;
   }
 
+  // Destaques de curto prazo (sempre baseados em LIFETIME pra refletir últimos N dias reais)
+  renderDestaques(main);
+
   // Pódio
   const topo = rank.slice(0, 3);
   const podio = el('div', { class: 'card' });
@@ -314,6 +326,160 @@ function renderPlacar(main) {
     );
     main.append(link);
   }
+}
+
+// ===== Destaques (curto prazo) =====
+function renderDestaques(main) {
+  // Sempre baseado em lifetime (todas as partidas) — janela de N dias é janela calendário, não temporada
+  const mvp = S.mvpDaJanela(data.jogadores, data.partidas, data.edicoes, JANELA_DESTAQUES_DIAS);
+  const ativo = S.maisAtivoDaJanela(data.jogadores, data.partidas, JANELA_DESTAQUES_DIAS);
+  const stk = S.streakMaiorAtivo(data.jogadores, data.partidas);
+  const ult = S.ultimaPartida(data.partidas);
+
+  // Se não há absolutamente nada nos últimos N dias e não há última partida, esconde
+  if (!mvp && !ativo && !stk && !ult) return;
+
+  const grid = el('div', { class: 'destaques' });
+
+  // Em alta
+  grid.append(destaqueCardJogador({
+    label: 'Em alta',
+    emoji: '🔥',
+    sublabel: `${JANELA_DESTAQUES_DIAS}d`,
+    nome: mvp?.nome,
+    meta: mvp ? `${mvp.pontos > 0 ? '+' : ''}${mvp.pontos} pts` : null,
+    metaClass: mvp ? classePontos(mvp.pontos) : 'muted',
+    extraClass: mvp ? 'highlight' : '',
+    empty: 'Sem partidas no período',
+  }));
+
+  // Mais ativo
+  grid.append(destaqueCardJogador({
+    label: 'Mais ativo',
+    emoji: '⚡',
+    sublabel: `${JANELA_DESTAQUES_DIAS}d`,
+    nome: ativo?.nome,
+    meta: ativo ? `${ativo.total} jogo${ativo.total !== 1 ? 's' : ''}` : null,
+    metaClass: 'muted',
+    empty: 'Sem partidas no período',
+  }));
+
+  // Streak
+  grid.append(destaqueCardJogador({
+    label: 'Sequência',
+    emoji: stk?.tipo === 'V' ? '🚀' : '🧊',
+    sublabel: 'agora',
+    nome: stk?.nome,
+    meta: stk ? `${stk.atual}${stk.tipo} seguidas` : null,
+    metaClass: stk?.tipo === 'V' ? 'pos' : 'neg',
+    extraClass: stk?.tipo === 'V' ? 'fire' : stk?.tipo === 'D' ? 'hot' : '',
+    empty: 'Sem streak ativo',
+  }));
+
+  // Última partida
+  grid.append(destaqueUltimaPartida(ult));
+
+  main.append(grid);
+}
+
+function destaqueCardJogador({ label, emoji, sublabel, nome, meta, metaClass = 'muted', extraClass = '', empty }) {
+  const cardEl = el('div', {
+    class: `destaque-card ${nome ? '' : 'no-tap'} ${extraClass}`.trim(),
+    onclick: nome ? () => navigate(`jogador/${encodeURIComponent(nome)}`) : null,
+  });
+  cardEl.append(el('div', { class: 'destaque-label' },
+    el('span', { class: 'destaque-emoji' }, emoji),
+    label,
+    sublabel ? el('span', { class: 'muted', style: { marginLeft: 'auto', fontSize: '0.625rem' } }, sublabel) : null,
+  ));
+  if (!nome) {
+    cardEl.append(el('div', { class: 'destaque-empty' }, empty));
+    return cardEl;
+  }
+  cardEl.append(el('div', { class: 'destaque-value' },
+    el('span', { class: 'avatar mini-avatar', style: { background: S.corDoNome(nome) } }, S.iniciais(nome)),
+    el('div', { class: 'destaque-value-text' },
+      el('div', { class: 'destaque-nome' }, nome),
+      meta ? el('div', { class: `destaque-meta ${metaClass}` }, meta) : null,
+    ),
+  ));
+  return cardEl;
+}
+
+function destaqueUltimaPartida(ult) {
+  const cardEl = el('div', { class: 'destaque-card no-tap' });
+  cardEl.append(el('div', { class: 'destaque-label' },
+    el('span', { class: 'destaque-emoji' }, '📅'),
+    'Última partida',
+  ));
+  if (!ult) {
+    cardEl.append(el('div', { class: 'destaque-empty' }, 'Nenhuma ainda'));
+    return cardEl;
+  }
+  const d = S.parseISO(ult.data);
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  const diff = Math.round((hoje - d) / 86400000);
+  const quando = diff === 0 ? 'hoje' : diff === 1 ? 'ontem' : diff < 7 ? `${diff}d atrás` : S.formatBR(ult.data);
+
+  cardEl.append(el('div', { class: 'destaque-value-text' },
+    el('div', { class: 'destaque-nome', style: { fontSize: '0.875rem' } }, `🏆 ${ult.vencedores.join(' & ')}`),
+    el('div', { class: 'destaque-meta muted', style: { color: 'var(--text-muted)', fontWeight: '500' } }, quando),
+  ));
+  return cardEl;
+}
+
+// ===== Celebração ao registrar vitória =====
+function celebrarVitoria(vencedores) {
+  // Confete
+  if (typeof confetti === 'function') {
+    const cores = ['#22c55e', '#facc15', '#ffffff', '#4ade80'];
+    const dispararLado = (origin) => confetti({
+      particleCount: 60,
+      angle: origin.x < 0.5 ? 60 : 120,
+      spread: 70,
+      origin,
+      colors: cores,
+      startVelocity: 45,
+      gravity: 1.1,
+      scalar: 0.95,
+    });
+    dispararLado({ x: 0.1, y: 0.85 });
+    dispararLado({ x: 0.9, y: 0.85 });
+    setTimeout(() => {
+      dispararLado({ x: 0.2, y: 0.85 });
+      dispararLado({ x: 0.8, y: 0.85 });
+    }, 250);
+  }
+
+  // Overlay
+  const overlay = el('div', { class: 'celebration-overlay' },
+    el('div', { class: 'celebration-content' },
+      el('div', { class: 'celebration-trophy' }, '🏆'),
+      el('div', { class: 'celebration-title' }, 'Vitória!'),
+      el('div', { class: 'celebration-names' },
+        nomeCelebracao(vencedores[0]),
+        el('div', { class: 'celebration-amp' }, '&'),
+        nomeCelebracao(vencedores[1]),
+      ),
+      el('div', { class: 'celebration-points' }, '+2 pts cada'),
+    ),
+  );
+  document.body.append(overlay);
+  return new Promise(resolve => {
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 0.3s';
+      overlay.style.opacity = '0';
+      setTimeout(() => { overlay.remove(); resolve(); }, 300);
+    }, 1500);
+  });
+}
+
+function nomeCelebracao(nome) {
+  return el('div', { class: 'celebration-name' },
+    el('div', { class: 'avatar', style: { background: S.corDoNome(nome) } }, S.iniciais(nome)),
+    el('div', { class: 'celebration-name-text' }, nome),
+  );
 }
 
 // ===== View: Jogador =====
@@ -604,10 +770,12 @@ async function registrarPartida() {
   const erro = S.validarPartida(partida);
   if (erro) { toast(erro); return; }
 
+  const vencedoresParaCelebrar = [...regVencedores];
+
   data.partidas.push(partida);
   regVencedores = []; regPerdedores = []; regData = S.toISO(new Date());
-  await salvarDados();
-  toast('Partida registrada ✓');
+  await salvarDados({ silent: true });
+  await celebrarVitoria(vencedoresParaCelebrar);
   navigate('placar');
 }
 
