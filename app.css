@@ -23,8 +23,8 @@
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   --tab-bar-h: 64px;
-  --safe-bottom: env(safe-area-inset-bottom, 0);
-  --safe-top: env(safe-area-inset-top, 0);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 /* === Reset === */
@@ -37,7 +37,8 @@ body {
   background: radial-gradient(120% 100% at 50% 0%, #054e3b 0%, var(--bg) 60%) fixed;
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: calc(var(--tab-bar-h) + var(--safe-bottom) + 12px);
+  min-height: 100dvh;
+  padding-bottom: calc(var(--tab-bar-h) + var(--safe-bottom) + 16px);
   -webkit-tap-highlight-color: transparent;
   line-height: 1.4;
   font-feature-settings: 'tnum' 1, 'cv11' 1;
@@ -616,7 +617,7 @@ input[type="date"] {
   border-top: 1px solid var(--border);
   display: flex;
   z-index: 10;
-  padding-bottom: var(--safe-bottom);
+  padding-bottom: max(var(--safe-bottom), 4px);
 }
 .nav-btn {
   flex: 1;

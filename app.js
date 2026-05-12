@@ -364,16 +364,16 @@ function renderDestaques(main) {
     empty: 'Sem partidas no período',
   }));
 
-  // Streak
+  // Streak (apenas vitórias — não desestimulamos cold streak)
   grid.append(destaqueCardJogador({
     label: 'Sequência',
-    emoji: stk?.tipo === 'V' ? '🚀' : '🧊',
+    emoji: '🚀',
     sublabel: 'agora',
     nome: stk?.nome,
-    meta: stk ? `${stk.atual}${stk.tipo} seguidas` : null,
-    metaClass: stk?.tipo === 'V' ? 'pos' : 'neg',
-    extraClass: stk?.tipo === 'V' ? 'fire' : stk?.tipo === 'D' ? 'hot' : '',
-    empty: 'Sem streak ativo',
+    meta: stk ? `${stk.atual} vitórias seguidas` : null,
+    metaClass: 'pos',
+    extraClass: stk ? 'fire' : '',
+    empty: 'Sem sequência ativa',
   }));
 
   // Última partida

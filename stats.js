@@ -368,19 +368,17 @@ export const maisAtivoDaJanela = (jogadores, partidas, dias) => {
   return ranking[0] || null;
 };
 
-// Maior streak ativo (V ou D) entre todos os jogadores. Mínimo 2 pra contar.
-// Retorna { nome, valor, tipo } ou null.
+// Maior streak ATIVA DE VITÓRIAS entre todos os jogadores. Mínimo 2 pra contar.
+// Retorna { nome, atual, tipo:'V' } ou null. (Streaks negativas são propositalmente ignoradas
+// pra não desestimular quem está numa fase ruim.)
 export const streakMaiorAtivo = (jogadores, partidas, min = 2) => {
   let melhor = null;
   for (const j of jogadores.filter(j => j.ativo !== false)) {
     const s = streak(j.nome, partidas);
-    if (s.atual >= min) {
-      // Prioriza vitórias se empate; usa ordem alfabética como desempate final
-      const score = s.atual + (s.tipo === 'V' ? 0.5 : 0);
-      const score0 = melhor ? melhor.atual + (melhor.tipo === 'V' ? 0.5 : 0) : -1;
-      if (score > score0 || (score === score0 && j.nome.localeCompare(melhor.nome) < 0)) {
-        melhor = { nome: j.nome, atual: s.atual, tipo: s.tipo };
-      }
+    if (s.tipo !== 'V' || s.atual < min) continue;
+    if (!melhor || s.atual > melhor.atual ||
+        (s.atual === melhor.atual && j.nome.localeCompare(melhor.nome) < 0)) {
+      melhor = { nome: j.nome, atual: s.atual, tipo: 'V' };
     }
   }
   return melhor;
